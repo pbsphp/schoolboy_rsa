@@ -5,9 +5,11 @@
 
 
 /* Key size in bits */
-#define KEY_SIZE 16
+#define KEY_SIZE 1024
 /* Max source data size in bytes */
 #define MAX_SOURCE_SIZE ((KEY_SIZE - 2) / 8)
+/* Public exponent */
+#define PUB_EXP 65537
 
 
 
@@ -24,10 +26,14 @@ int main()
     mpz_t q;
     mpz_t n;
     mpz_t phi;
+    mpz_t e;
+    mpz_t d;
     mpz_init(p);
     mpz_init(q);
     mpz_init(n);
     mpz_init(phi);
+    mpz_init(e);
+    mpz_init(d);
 
     gmp_randstate_t rs;
     gmp_randinit_default(rs);
@@ -55,6 +61,11 @@ int main()
     mpz_sub_ui(q, q, 1);
     mpz_mul(phi, p, q);
 
+    /* Public exponent */
+    mpz_set_ui(e, PUB_EXP);
+
+    /* Private exponent */
+    mpz_invert(d, e, phi);
 
 
     gmp_randclear(rs);
@@ -63,6 +74,8 @@ int main()
     mpz_clear(q);
     mpz_clear(n);
     mpz_clear(phi);
+    mpz_clear(e);
+    mpz_clear(d);
 
     return 0;
 }
