@@ -2,6 +2,7 @@
 #include <gmp.h>
 #include <time.h>
 #include <string.h>
+#include <stdlib.h>
 
 
 /* Key size in bits */
@@ -17,6 +18,25 @@ int get_seed()
 {
     static increment = 0;
     return time(NULL) + increment++;
+}
+
+
+/* Converts key {X, n} to string */
+void get_key(char *key, const mpz_t e, const mpz_t n)
+{
+    sprintf(key, "%s;%s", mpz_get_str(NULL, 36, e), mpz_get_str(NULL, 36, n));
+}
+
+
+/* Converts string key to key pair */
+void set_key(const char *key, mpz_t e, mpz_t n)
+{
+    /* TODO: remove hardcoded size */
+    char buffer1[512];
+    char buffer2[512];
+    sscanf(key, "%s;%s", buffer1, buffer2);
+    mpz_set_str(e, buffer1, 36);
+    mpz_set_str(n, buffer2, 36);
 }
 
 
