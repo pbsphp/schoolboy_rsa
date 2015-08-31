@@ -24,7 +24,7 @@ int get_seed()
 /* Converts key {X, n} to string */
 void get_key(char *key, const mpz_t e, const mpz_t n)
 {
-    sprintf(key, "%s;%s", mpz_get_str(NULL, 36, e), mpz_get_str(NULL, 36, n));
+    sprintf(key, "%s %s", mpz_get_str(NULL, 36, e), mpz_get_str(NULL, 36, n));
 }
 
 
@@ -32,9 +32,9 @@ void get_key(char *key, const mpz_t e, const mpz_t n)
 void set_key(const char *key, mpz_t e, mpz_t n)
 {
     /* TODO: remove hardcoded size */
-    char buffer1[512];
-    char buffer2[512];
-    sscanf(key, "%s;%s", buffer1, buffer2);
+    char buffer1[1024];
+    char buffer2[1024];
+    sscanf(key, "%s %s", buffer1, buffer2);
     mpz_set_str(e, buffer1, 36);
     mpz_set_str(n, buffer2, 36);
 }
@@ -61,12 +61,17 @@ void generate_keys(mpz_t public_exponent,
     3) Prime numbers */
     gmp_randseed_ui(rs, get_seed());
     mpz_urandomb(p, rs, KEY_SIZE / 2);
-    mpz_nextprime(p, p);
     mpz_setbit(p, (KEY_SIZE / 2) - 1);
+    do {
+        mpz_nextprime(p, p);
+    } while (mpz_probab_prime_p(p, 1000) == 0);
+
     gmp_randseed_ui(rs, get_seed());
     mpz_urandomb(q, rs, KEY_SIZE / 2);
     mpz_setbit(q, (KEY_SIZE / 2) - 1);
-    mpz_nextprime(q, q);
+    do {
+        mpz_nextprime(q, q);
+    } while (mpz_probab_prime_p(q, 1000) == 0);
 
 
     /* Modulus */
@@ -91,6 +96,61 @@ void generate_keys(mpz_t public_exponent,
 }
 
 
+/* Encrypts source with key and writes it to buffer */
+void encrypt(char *buffer, const char *source, const char *key)
+{
+    mpz_t e;
+    mpz_t n;
+    mpz_t number;
+    mpz_init(e);
+    mpz_init(n);
+    mpz_init(number);
+
+    /* Convert string key to {e; n} pair */
+    set_key(key, e, n);
+
+    /* Read source bytes as one big number */
+    mpz_import(number, strlen(source) + 1, 1, sizeof(char), 1, 0, source);
+
+    /* Encrypt number by {e; n} pair */
+    mpz_powm(number, number, e, n);
+
+    /* Put encrypted data to buffer as number with base 36 */
+    strcpy(buffer, mpz_get_str(NULL, 36, number));
+
+    mpz_clear(e);
+    mpz_clear(n);
+    mpz_clear(number);
+}
+
+
+void decrypt(char *buffer, const char *ciphertext, const char *key)
+{
+    mpz_t d;
+    mpz_t n;
+    mpz_t number;
+    mpz_init(d);
+    mpz_init(n);
+    mpz_init(number);
+
+    /* Convert string key to {d; n} pair */
+    set_key(key, d, n);
+
+    /* Read ciphertext as big number with base 36 */
+    mpz_set_str(number, ciphertext, 36);
+
+    /* Encrypt number by {d; n} pair */
+    mpz_powm(number, number, d, n);
+
+    /* Store decrypted number to buffer */
+    mpz_export(buffer, NULL, 1, strlen("This is source text. Looks like it works fine!") + 1, 1, 0, number);
+
+    mpz_clear(d);
+    mpz_clear(n);
+    mpz_clear(number);
+}
+
+
 int main()
 {
     mpz_t n;
@@ -102,13 +162,27 @@ int main()
 
     generate_keys(e, d, n);
 
-    char buffer1[512];
-    char buffer2[512];
+    char public_key[2048];
+    char private_key[2048];
 
-    get_key(buffer1, e, n);
-    get_key(buffer2, d, n);
+    get_key(public_key, e, n);
+    get_key(private_key, d, n);
 
-    printf("%s\n%s\n", buffer1, buffer2);
+    printf("Public key:\n%s\n\n", public_key);
+    printf("Private key:\n%s\n\n", private_key);
+
+
+    const char *str = "This is source text. Looks like it works fine!";
+
+    printf("Source text:\n%s\n\n", str);
+
+    char encrypted_buffer[2048];
+    char decrypted_buffer[2048];
+
+    encrypt(encrypted_buffer, str, public_key);
+    printf("Cyphertext:\n%s\n\n", encrypted_buffer);
+    decrypt(decrypted_buffer, encrypted_buffer, private_key);
+    printf("Decoded text:\n%s\n\n", decrypted_buffer);
 
     mpz_clear(n);
     mpz_clear(e);
