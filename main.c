@@ -40,20 +40,16 @@ void set_key(const char *key, mpz_t e, mpz_t n)
 }
 
 
-int main()
+/* Generates public and private keys */
+void generate_keys(mpz_t public_exponent,
+        mpz_t private_exponent, mpz_t modulus)
 {
     mpz_t p;
     mpz_t q;
-    mpz_t n;
     mpz_t phi;
-    mpz_t e;
-    mpz_t d;
     mpz_init(p);
     mpz_init(q);
-    mpz_init(n);
     mpz_init(phi);
-    mpz_init(e);
-    mpz_init(d);
 
     gmp_randstate_t rs;
     gmp_randinit_default(rs);
@@ -74,7 +70,7 @@ int main()
 
 
     /* Modulus */
-    mpz_mul(n, p, q);
+    mpz_mul(modulus, p, q);
 
     /* Euler function */
     mpz_sub_ui(p, p, 1);
@@ -82,18 +78,39 @@ int main()
     mpz_mul(phi, p, q);
 
     /* Public exponent */
-    mpz_set_ui(e, PUB_EXP);
+    mpz_set_ui(public_exponent, PUB_EXP);
 
     /* Private exponent */
-    mpz_invert(d, e, phi);
-
+    mpz_invert(private_exponent, public_exponent, phi);
 
     gmp_randclear(rs);
 
     mpz_clear(p);
     mpz_clear(q);
-    mpz_clear(n);
     mpz_clear(phi);
+}
+
+
+int main()
+{
+    mpz_t n;
+    mpz_t e;
+    mpz_t d;
+    mpz_init(n);
+    mpz_init(e);
+    mpz_init(d);
+
+    generate_keys(e, d, n);
+
+    char buffer1[512];
+    char buffer2[512];
+
+    get_key(buffer1, e, n);
+    get_key(buffer2, d, n);
+
+    printf("%s\n%s\n", buffer1, buffer2);
+
+    mpz_clear(n);
     mpz_clear(e);
     mpz_clear(d);
 
