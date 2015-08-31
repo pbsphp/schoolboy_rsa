@@ -11,32 +11,37 @@
 #define MAX_SOURCE_SIZE ((KEY_SIZE - 2) / 8)
 /* Public exponent */
 #define PUB_EXP 65537
+/* Use number with given base for string keys */
+#define KEY_NUMBER_BASE 36
+/* Key string size */
+#define KEY_STRING_SIZE 2048
 
 
 
 int get_seed()
 {
-    static increment = 0;
+    static int increment = 0;
     return time(NULL) + increment++;
 }
 
 
 /* Converts key {X, n} to string */
-void get_key(char *key, const mpz_t e, const mpz_t n)
+void get_key(char *key, const mpz_t exponent, const mpz_t modulo)
 {
-    sprintf(key, "%s %s", mpz_get_str(NULL, 36, e), mpz_get_str(NULL, 36, n));
+    sprintf(key, "%.2048s %.2048s",
+            mpz_get_str(NULL, KEY_NUMBER_BASE, exponent),
+            mpz_get_str(NULL, KEY_NUMBER_BASE, modulo));
 }
 
 
 /* Converts string key to key pair */
-void set_key(const char *key, mpz_t e, mpz_t n)
+void set_key(const char *key, mpz_t exponent, mpz_t modulo)
 {
-    /* TODO: remove hardcoded size */
-    char buffer1[1024];
-    char buffer2[1024];
-    sscanf(key, "%s %s", buffer1, buffer2);
-    mpz_set_str(e, buffer1, 36);
-    mpz_set_str(n, buffer2, 36);
+    char buf_a[KEY_STRING_SIZE];
+    char buf_b[KEY_STRING_SIZE];
+    sscanf(key, "%s %s", buf_a, buf_b);
+    mpz_set_str(exponent, buf_a, KEY_NUMBER_BASE);
+    mpz_set_str(modulo, buf_b, KEY_NUMBER_BASE);
 }
 
 
@@ -97,7 +102,7 @@ void generate_keys(mpz_t public_exponent,
 
 
 /* Encrypts source with key and writes it to buffer */
-void encrypt(char *buffer, const char *source, const char *key)
+void encrypt(char *buffer, size_t limit, const char *source, const char *key)
 {
     mpz_t e;
     mpz_t n;
@@ -115,8 +120,8 @@ void encrypt(char *buffer, const char *source, const char *key)
     /* Encrypt number by {e; n} pair */
     mpz_powm(number, number, e, n);
 
-    /* Put encrypted data to buffer as number with base 36 */
-    strcpy(buffer, mpz_get_str(NULL, 36, number));
+    /* Put encrypted data to buffer as number with base KEY_NUMBER_BASE */
+    strncpy(buffer, mpz_get_str(NULL, KEY_NUMBER_BASE, number), limit);
 
     mpz_clear(e);
     mpz_clear(n);
@@ -124,7 +129,7 @@ void encrypt(char *buffer, const char *source, const char *key)
 }
 
 
-void decrypt(char *buffer, const char *ciphertext, const char *key)
+void decrypt(char *buffer, size_t length, const char *ciphertext, const char *key)
 {
     mpz_t d;
     mpz_t n;
@@ -137,13 +142,13 @@ void decrypt(char *buffer, const char *ciphertext, const char *key)
     set_key(key, d, n);
 
     /* Read ciphertext as big number with base 36 */
-    mpz_set_str(number, ciphertext, 36);
+    mpz_set_str(number, ciphertext, KEY_NUMBER_BASE);
 
     /* Encrypt number by {d; n} pair */
     mpz_powm(number, number, d, n);
 
     /* Store decrypted number to buffer */
-    mpz_export(buffer, NULL, 1, strlen("This is source text. Looks like it works fine!") + 1, 1, 0, number);
+    mpz_export(buffer, NULL, 1, length, 1, 0, number);
 
     mpz_clear(d);
     mpz_clear(n);
@@ -162,8 +167,8 @@ int main()
 
     generate_keys(e, d, n);
 
-    char public_key[2048];
-    char private_key[2048];
+    char public_key[KEY_STRING_SIZE];
+    char private_key[KEY_STRING_SIZE];
 
     get_key(public_key, e, n);
     get_key(private_key, d, n);
@@ -176,12 +181,12 @@ int main()
 
     printf("Source text:\n%s\n\n", str);
 
-    char encrypted_buffer[2048];
-    char decrypted_buffer[2048];
+    char encrypted_buffer[KEY_STRING_SIZE];
+    char decrypted_buffer[KEY_STRING_SIZE];
 
-    encrypt(encrypted_buffer, str, public_key);
+    encrypt(encrypted_buffer, KEY_STRING_SIZE, str, public_key);
     printf("Cyphertext:\n%s\n\n", encrypted_buffer);
-    decrypt(decrypted_buffer, encrypted_buffer, private_key);
+    decrypt(decrypted_buffer, strlen(str) + 1, encrypted_buffer, private_key);
     printf("Decoded text:\n%s\n\n", decrypted_buffer);
 
     mpz_clear(n);
