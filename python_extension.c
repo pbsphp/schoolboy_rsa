@@ -15,10 +15,22 @@ static PyObject *schoolboy_rsa_encrypt(
     char cyphertext[KEY_STRING_SIZE];
 
     /* Try to parse function arguments */
-    if (!PyArg_ParseTuple(args, "ss", &source, &key))
+    Py_ssize_t source_length;
+    Py_ssize_t key_length;
+    if (!PyArg_ParseTuple(args, "s#s#", &source, &source_length,
+                            &key, &key_length)) {
         return NULL;
+    }
 
-    /* TODO: throw exception for too long string */
+    /* Throw exception if source or key is too long */
+    if ((int) source_length >= MAX_SOURCE_SIZE) {
+        PyErr_SetString(PyExc_ValueError, "Source is too long");
+        return NULL;
+    }
+    if ((int) key_length >= KEY_STRING_SIZE) {
+        PyErr_SetString(PyExc_ValueError, "Key is too long");
+        return NULL;
+    }
 
     /* Encrypt */
     sb_encrypt(cyphertext, source, key);
@@ -36,10 +48,19 @@ static PyObject *schoolboy_rsa_decrypt(
     char source[MAX_SOURCE_SIZE];
 
     /* Try to parse function arguments */
-    if (!PyArg_ParseTuple(args, "ss", &cyphertext, &key))
+    Py_ssize_t cyphertext_length;
+    Py_ssize_t key_length;
+    if (!PyArg_ParseTuple(  args, "s#s#", &cyphertext, &cyphertext_length,
+                            &key, &key_length)) {
         return NULL;
+    }
 
-    /* TODO: throw exception for too long string */
+    /* Throw exception if ciphertext or key is too long */
+    /* FIXME: how long cyphertext allowed? */
+    if ((int) key_length >= KEY_STRING_SIZE) {
+        PyErr_SetString(PyExc_ValueError, "Key is too long");
+        return NULL;
+    }
 
     /* Encrypt */
     sb_decrypt(source, cyphertext, key);
