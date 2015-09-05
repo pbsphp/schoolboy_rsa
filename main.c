@@ -102,7 +102,7 @@ void generate_keys(mpz_t public_exponent,
 
 
 /* Encrypts source with key and writes it to buffer */
-void encrypt(char *buffer, size_t limit, const char *source, const char *key)
+void encrypt(char *buffer, const char *source, const char *key)
 {
     mpz_t e;
     mpz_t n;
@@ -115,13 +115,13 @@ void encrypt(char *buffer, size_t limit, const char *source, const char *key)
     set_key(key, e, n);
 
     /* Read source bytes as one big number */
-    mpz_import(number, strlen(source) + 1, 1, sizeof(char), 1, 0, source);
+    mpz_import(number, MAX_SOURCE_SIZE, 1, sizeof(char), 1, 0, source);
 
     /* Encrypt number by {e; n} pair */
     mpz_powm(number, number, e, n);
 
     /* Put encrypted data to buffer as number with base KEY_NUMBER_BASE */
-    strncpy(buffer, mpz_get_str(NULL, KEY_NUMBER_BASE, number), limit);
+    strncpy(buffer, mpz_get_str(NULL, KEY_NUMBER_BASE, number), KEY_SIZE);
 
     mpz_clear(e);
     mpz_clear(n);
@@ -129,7 +129,7 @@ void encrypt(char *buffer, size_t limit, const char *source, const char *key)
 }
 
 
-void decrypt(char *buffer, size_t length, const char *ciphertext, const char *key)
+void decrypt(char *buffer, const char *ciphertext, const char *key)
 {
     mpz_t d;
     mpz_t n;
@@ -148,7 +148,7 @@ void decrypt(char *buffer, size_t length, const char *ciphertext, const char *ke
     mpz_powm(number, number, d, n);
 
     /* Store decrypted number to buffer */
-    mpz_export(buffer, NULL, 1, length, 1, 0, number);
+    mpz_export(buffer, NULL, 1, MAX_SOURCE_SIZE, 1, 0, number);
 
     mpz_clear(d);
     mpz_clear(n);
@@ -184,9 +184,9 @@ int main()
     char encrypted_buffer[KEY_STRING_SIZE];
     char decrypted_buffer[KEY_STRING_SIZE];
 
-    encrypt(encrypted_buffer, KEY_STRING_SIZE, str, public_key);
+    encrypt(encrypted_buffer, str, public_key);
     printf("Cyphertext:\n%s\n\n", encrypted_buffer);
-    decrypt(decrypted_buffer, strlen(str) + 1, encrypted_buffer, private_key);
+    decrypt(decrypted_buffer, encrypted_buffer, private_key);
     printf("Decoded text:\n%s\n\n", decrypted_buffer);
 
     mpz_clear(n);
