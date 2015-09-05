@@ -97,7 +97,7 @@ static void generate_mpz_keys(mpz_t public_exponent,
 
 
 /* Encrypts source with key and writes it to buffer */
-void encrypt(char *buffer, const char *source, const char *key)
+void sb_encrypt(char *buffer, const char *source, const char *key)
 {
     mpz_t e;
     mpz_t n;
@@ -125,7 +125,7 @@ void encrypt(char *buffer, const char *source, const char *key)
 
 
 /* Decrypts cyphertext with key and writes it to buffer */
-void decrypt(char *buffer, const char *ciphertext, const char *key)
+void sb_decrypt(char *buffer, const char *ciphertext, const char *key)
 {
     mpz_t d;
     mpz_t n;
@@ -153,7 +153,7 @@ void decrypt(char *buffer, const char *ciphertext, const char *key)
 
 
 /* Generates key pair */
-void generate_keys(char *public, char *private)
+void sb_generate_keys(char *public, char *private)
 {
     mpz_t pub;
     mpz_t prv;
