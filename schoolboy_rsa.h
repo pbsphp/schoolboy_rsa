@@ -5,6 +5,9 @@
 #include <stdlib.h>
 
 
+#ifndef SCHOOLBOY_RSA_H_
+#define SCHOOLBOY_RSA_H_
+
 /* Key size in bits */
 #define KEY_SIZE 1024
 /* Max source data size in bytes */
@@ -45,3 +48,5 @@ void decrypt(char *buffer, const char *ciphertext, const char *key);
                     Should be at least KEY_STRING_SIZE bytes
 */
 void generate_keys(char *public, char *private);
+
+#endif
