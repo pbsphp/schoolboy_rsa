@@ -4,21 +4,16 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "schoolboy_rsa.h"
 
-/* Key size in bits */
-#define KEY_SIZE 1024
-/* Max source data size in bytes */
-#define MAX_SOURCE_SIZE ((KEY_SIZE - 2) / 8)
+
 /* Public exponent */
 #define PUB_EXP 65537
 /* Use number with given base for string keys */
 #define KEY_NUMBER_BASE 36
-/* Key string size */
-#define KEY_STRING_SIZE 2048
 
 
-
-int get_seed()
+static int get_seed()
 {
     static int increment = 0;
     return time(NULL) + increment++;
@@ -26,7 +21,7 @@ int get_seed()
 
 
 /* Converts key {X, n} to string */
-void get_key(char *key, const mpz_t exponent, const mpz_t modulo)
+static void get_key(char *key, const mpz_t exponent, const mpz_t modulo)
 {
     sprintf(key, "%.2048s %.2048s",
             mpz_get_str(NULL, KEY_NUMBER_BASE, exponent),
@@ -35,7 +30,7 @@ void get_key(char *key, const mpz_t exponent, const mpz_t modulo)
 
 
 /* Converts string key to key pair */
-void set_key(const char *key, mpz_t exponent, mpz_t modulo)
+static void set_key(const char *key, mpz_t exponent, mpz_t modulo)
 {
     char buf_a[KEY_STRING_SIZE];
     char buf_b[KEY_STRING_SIZE];
@@ -45,8 +40,8 @@ void set_key(const char *key, mpz_t exponent, mpz_t modulo)
 }
 
 
-/* Generates public and private keys */
-void generate_keys(mpz_t public_exponent,
+/* Generates public and private mpz_t keys */
+static void generate_mpz_keys(mpz_t public_exponent,
         mpz_t private_exponent, mpz_t modulus)
 {
     mpz_t p;
@@ -129,6 +124,7 @@ void encrypt(char *buffer, const char *source, const char *key)
 }
 
 
+/* Decrypts cyphertext with key and writes it to buffer */
 void decrypt(char *buffer, const char *ciphertext, const char *key)
 {
     mpz_t d;
@@ -156,42 +152,21 @@ void decrypt(char *buffer, const char *ciphertext, const char *key)
 }
 
 
-int main()
+/* Generates key pair */
+void generate_keys(char *public, char *private)
 {
-    mpz_t n;
-    mpz_t e;
-    mpz_t d;
-    mpz_init(n);
-    mpz_init(e);
-    mpz_init(d);
+    mpz_t pub;
+    mpz_t prv;
+    mpz_t modulus;
+    mpz_init(pub);
+    mpz_init(prv);
+    mpz_init(modulus);
 
-    generate_keys(e, d, n);
+    generate_mpz_keys(pub, prv, modulus);
+    get_key(public, pub, modulus);
+    get_key(private, prv, modulus);
 
-    char public_key[KEY_STRING_SIZE];
-    char private_key[KEY_STRING_SIZE];
-
-    get_key(public_key, e, n);
-    get_key(private_key, d, n);
-
-    printf("Public key:\n%s\n\n", public_key);
-    printf("Private key:\n%s\n\n", private_key);
-
-
-    const char *str = "This is source text. Looks like it works fine!";
-
-    printf("Source text:\n%s\n\n", str);
-
-    char encrypted_buffer[KEY_STRING_SIZE];
-    char decrypted_buffer[KEY_STRING_SIZE];
-
-    encrypt(encrypted_buffer, str, public_key);
-    printf("Cyphertext:\n%s\n\n", encrypted_buffer);
-    decrypt(decrypted_buffer, encrypted_buffer, private_key);
-    printf("Decoded text:\n%s\n\n", decrypted_buffer);
-
-    mpz_clear(n);
-    mpz_clear(e);
-    mpz_clear(d);
-
-    return 0;
+    mpz_clear(pub);
+    mpz_clear(prv);
+    mpz_clear(modulus);
 }
